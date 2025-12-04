@@ -8,7 +8,7 @@ test = False # Change this to run program with the smaller testinput for debug
 DEBUG = False # Change this to have debug outputs
 
 root = os.getcwd()
-current_day = os.path.join(root, f"Day{day:2d}")
+current_day = os.path.join(root, f"Day{day:02d}")
 if test:
     input_path = os.path.join(current_day, 'test.txt')
 else:
@@ -22,4 +22,4 @@ with open(input_path, 'r') as file_in:
 
 
 with open(output_path, 'w') as file_out:
-    file_out.write(output_path)
+    file_out.write(out)
