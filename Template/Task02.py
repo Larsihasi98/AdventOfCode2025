@@ -8,6 +8,8 @@ test = False # Change this to run program with the smaller testinput for debug
 DEBUG = False # Change this to have debug outputs
 
 root = os.getcwd()
+if(os.path.basename(root) != 'AdventOfCode2025'):
+    root = os.path.normpath(os.path.join(root, '..'))
 current_day = os.path.join(root, f"Day{day:2d}")
 if test:
     input_path = os.path.join(current_day, 'test.txt')
