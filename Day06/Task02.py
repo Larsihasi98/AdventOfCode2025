@@ -6,8 +6,8 @@ import math
 
 day = 6# Input day here
 
-test = True # Change this to run program with the smaller testinput for debug
-DEBUG = True # Change this to have debug outputs
+test = False # Change this to run program with the smaller testinput for debug
+DEBUG = False # Change this to have debug outputs
 
 root = os.getcwd()
 if(os.path.basename(root) != 'AdventOfCode2025'):
@@ -43,48 +43,51 @@ def convert_numbers(numbers_in):
     return numbers_out.reverse()
 
 def process_input(input):
-    global out
-    calculation_df = pd.read_csv(StringIO(input), sep=r'\s+', header=None).transpose()
-    calculation_df.columns = [*calculation_df.columns[:-1], 'operator']
-    out += 'The Calculations are:\n'
-    out += calculation_df.to_string()
-    out += '\n'
+    out = ''
+    input_array = []
+    for line in input.split('\n'):
+        input_array.append(list(line))
+
+    calculations = []
+    current_opperand = ''
+    current_numbers = []
+    for y in reversed(range(0, len(input_array[0]))):
+        #iterate through rows right to left
+        current_number = ''
+        for x in range(0, len(input_array)):
+            #iterate through column top to bottom
+            current_item = input_array[x][y]
+            if current_item.isdigit():
+                current_number += f"{current_item}"
+            if (current_item == '+' or current_item == '*'):
+                current_opperand = current_item
+        if(len(current_number) > 0):
+            current_numbers.append(int(current_number)) #Change the string of this column to an int and append
+        if(current_opperand != ''):
+            # We have arrived at the end of the current calculation. Add it to our list of calculations and reset variables
+            calculations.append({'Opperand': current_opperand, 'Numbers': current_numbers})
+            current_opperand = ''
+            current_numbers = []
+    
     total_result = 0
-    for index, row in calculation_df.iterrows():
-        if(DEBUG):
-            out+= f"Looking at row {index}\n"
-        result = 0
-        operator = row['operator']
-        old_numbers =[]
-        for j in range(0, row.shape[0]-1):
-            old_numbers.append(row[j])
-        
-        new_numbers = convert_numbers(old_numbers)
+    for calculation in calculations:
+        if(calculation['Opperand'] == '+'):
+            result = 0
+            out += 'Adding up the numbers... '
+            for number in calculation['Numbers']:
+                out += f"{number} "
+                result += number
+            out += f'= {result}\n'
+        if(calculation['Opperand'] == '*'):
+            result = 1
+            out += 'Multiplying the numbers... '
+            for number in calculation['Numbers']:
+                out += f"{number} "
+                result *= number
+            out += f"={result}"
+        total_result += result
         
 
-        if(operator == '+'):
-            if(DEBUG):
-                out+= f"Row needs to be added up {index}\n"
-            #Add elements
-            for j in range(0, len(new_numbers)):
-                if(DEBUG):
-                    out += f"\tadding number {new_numbers[j]}\n"
-                result +=  new_numbers[j]
-        if(operator == '*'):
-            if(DEBUG):
-                out+= f"Row needs to be multiplied {index}\n"
-            #Multiply elements
-            for j in range(0, len(new_numbers)):
-                if(DEBUG):
-                    out += f"\tmultiplying with number {new_numbers[j]}\n"
-                if(result > 0):
-                    result *=  new_numbers[j]
-                else:
-                    result = new_numbers[j]
-        else:
-            out += f"Unknown operator in row {index}: {operator}\n"
-        out += f"Result of row  {index} is {result}\n"
-        total_result  += result
     out += f"\nAdding all results up leads us to {total_result}"
     return(out, total_result)
 
