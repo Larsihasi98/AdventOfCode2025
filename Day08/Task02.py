@@ -10,20 +10,18 @@ DEBUG = False # Change this to have debug outputs
 root = os.getcwd()
 if(os.path.basename(root) != 'AdventOfCode2025'):
     root = os.path.normpath(os.path.join(root, '..'))
-current_day = os.path.join(root, f"Day{day:02d}")
+current_day = os.path.join(root, f"Day{day:2d}")
 if test:
     input_path = os.path.join(current_day, 'test.txt')
 else:
     input_path = os.path.join(current_day, 'Input.txt')
 output_path = os.path.join(current_day, 'Output.txt')
 
-def process_input(input):
-    out = ''
-
+out = ''
 
 with open(input_path, 'r') as file_in:
     input = file_in.read()
-out = process_input(input)
+
 
 with open(output_path, 'w') as file_out:
-    file_out.write(out)
+    file_out.write(output_path)
