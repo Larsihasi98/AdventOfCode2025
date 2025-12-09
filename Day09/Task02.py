@@ -93,7 +93,7 @@ def check_for_green(list_of_red_tiles, index_a, index_b):
 
     valid_square = False
 
-    if not polygon.contains(square):
+    if polygon.contains(square):
         valid_square == True
     
 
