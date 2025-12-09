@@ -6,9 +6,9 @@ from shapely.geometry import Point
 from shapely.geometry.polygon import Polygon
 day = 9# Input day here
 
-test = True # Change this to run program with the smaller testinput for debug
-DEBUG = True # Change this to have debug outputs
-OUTPUT_DATA = True
+test = False # Change this to run program with the smaller testinput for debug
+DEBUG = False # Change this to have debug outputs
+OUTPUT_DATA = False
 
 root = os.getcwd()
 if(os.path.basename(root) != 'AdventOfCode2025'):
@@ -78,7 +78,6 @@ def check_for_green(list_of_red_tiles, index_a, index_b):
     min_y = min(coords_a[1], coords_b[1])
     max_x = max(coords_a[0], coords_b[0])
     max_y = max(coords_a[1], coords_b[1])
-    print(f"{coords_a}, {coords_b}")
     square = Polygon([
         Point(min_x, min_y),
         Point(max_x, min_y),
@@ -86,15 +85,13 @@ def check_for_green(list_of_red_tiles, index_a, index_b):
         Point(min_x, max_y)      
     ])
 
+    polygon = Polygon(list_of_red_tiles)
     if(DEBUG):
         print(square)
+        print(polygon)
 
-    polygon = Polygon(list_of_red_tiles)
 
-    valid_square = False
-
-    if polygon.contains(square):
-        valid_square == True
+    valid_square = polygon.contains(square)
     
 
     return valid_square
@@ -282,7 +279,7 @@ def process_input(input):
             loc = int(tile)
             tiles.append(loc)
         redtiles.append(tiles)
-    redtiles = np.array(redtiles)
+    redtiles = np.array(redtiles, dtype=int)
     if OUTPUT_DATA:
         out += draw_grid(redtiles)
 
