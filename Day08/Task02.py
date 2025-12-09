@@ -69,7 +69,8 @@ def process_input(input):
                 compare_junction = junction_boxes[j]
                 #We are not calculating the root, as we don't care about actual distance, just what is shorter. This should save on calculation time
                 distance = ((current_junction['x']-compare_junction['x'])**2) + ((current_junction['y']-compare_junction['y'])**2) + ((current_junction['z']-compare_junction['z'])**2)
-                out +=f"distance between ({current_junction['x']}|{current_junction['y']}|{current_junction['z']}) and ({compare_junction['x']}|{compare_junction['y']}|{compare_junction['z']})is {distance}\n"
+                if DEBUG:
+                    out +=f"distance between ({current_junction['x']}|{current_junction['y']}|{current_junction['z']}) and ({compare_junction['x']}|{compare_junction['y']}|{compare_junction['z']})is {distance}\n"
                 connection_calculated[j][i] = True
                 connection_calculated[i][j] = True
                 distance_list.append({'outgoing_ID': current_junction['ID'], 'connected_ID' : compare_junction['ID'], 'distance': distance})
@@ -81,7 +82,7 @@ def process_input(input):
     final_connection_a = -1
     final_connection_b = -1
     print(f"Starting loop for runs")
-    while (not done):
+    while not done:
         # Connect closest two junctions
         connection = distance_list[index]
         ID_a = connection['outgoing_ID']
