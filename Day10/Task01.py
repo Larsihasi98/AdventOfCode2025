@@ -2,12 +2,11 @@ import os
 import re
 import math
 import numpy as np
-from treelib import Tree
 
 day = 10# Input day here
 
-test = True # Change this to run program with the smaller testinput for debug
-DEBUG = True # Change this to have debug outputs
+test = False # Change this to run program with the smaller testinput for debug
+DEBUG = False # Change this to have debug outputs
 
 root = os.getcwd()
 if(os.path.basename(root) != 'AdventOfCode2025'):
@@ -46,126 +45,110 @@ def draw_lights(machines, button_presses):
     
 def figure_button_presses(machine):
     # Get amount of combinations:
+    def lights_to_value(lights):
+        length = len(lights)
+        value = 0
+        for i in range(length):
+            if(lights[length- i- 1]):
+                value +=  2 ** i
+
+        return value
+    
+    def value_to_lights(value, bits):
+        binary_str = f"{value:0{bits}b}"
+        lights = np.full(len(binary_str), False, dtype=bool)
+        for i in range(len(binary_str)):
+            if int(binary_str[i]) > 0:
+                lights[i] = True
+        return lights
+
+    
+    class Node:
+        def __init__(self, value, connections, bits):
+            self.value = value
+            self.connections = connections
+            self.bits = bits
+        
+        def __str__(self):
+            return f"Node of Value {self.value} ({self.value:0{self.bits}b})"
+        
+        def get_connections(self):
+            str_out = ''
+            for i in range(len(connections)):
+                str_out += f'\tButton {i} leads to {self.connections[i]}\n'
+            return str_out
+
     buttons = machine['buttons']
     if DEBUG:
         for i in range(len(buttons)):
             print(f"Button {i}: {buttons[i]}")
-    combinations = 2 ** len(machine['lights_current']) # We are considering every light as 1 bit.
-    combinations_reached = np.full(combinations, -1, dtype=int) # For every combination, remember the amount of button presses we needed to get there. Negative value means we haven't reached this combination yet
-    combinations_path = [None for _ in range(combinations)]
-    # np.empty(combinations, dtype=str) # Save Node_IDs to the shortest way here
-    #convert array of lights to integer
-    def light_combination(lights):
-        length = len(lights)
-        out = 0
-        for i in range(length):
-            if(lights[length- i- 1]):
-                out +=  2 ** i
+    lights_number = len(machine['lights_current'])
+    max_combinations = 2 ** lights_number # We are considering every light as 1 bit.
 
-        return out
-    
-    finished = False
-    #Use a redundant search to try different combinations:
-    tree = Tree()
-    finished = False
-    no_of_nodes = 0
+    graph_nodes = []
+    for value in range(max_combinations):
+        connections = [None for _ in range(len(buttons))]
+        graph_nodes.append(Node(value,connections,lights_number))
 
-    class Node_Structure:
-        def __init__(self, last_button, lights, combination):
-            self.last_button = last_button
-            self.lights = np.copy(lights)
-            self.combination = combination
-            self.debug_out = f"Button {last_button}, Lights: {combination:04b}"
-        
-        def __str__(self):
-            return f"{self.last_button}, lights: {self.lights}. Combination: {self.combination}"
-    
-    current_lights = np.copy(machine['lights_current'])
-    current_combination = light_combination(current_lights)
-    current_data = Node_Structure(None, current_lights, current_combination)
-    
-    tree.create_node(f"{no_of_nodes}", data = current_data)
-    current_node = tree[tree.root]
-    combinations_reached[current_combination] = tree.depth(current_node)
-    combinations_path[current_combination] = current_node.identifier
-    while(not finished):
-        #print(f"current_node at start: {current_node.identifier}, lights: {current_node.data.lights}")
-        current_data = current_node.data
-        current_ID = current_node.identifier
-        
-        current_lights = np.copy(current_data.lights)
-        current_combination = current_data.combination
-        buttons_tried = len(tree.children(current_ID))
-
-        # If we haven't tried all follow up combinations of this node, try the next button
-        next_button = buttons_tried
-        if next_button < len(buttons): #Once we tried last Button, go back
-            for change in buttons[next_button]:
+    # Connect Graph nodes:
+    for graph_index in range(max_combinations):
+        current_lights = value_to_lights(graph_index, lights_number)
+        for b in range(len(buttons)):
+            changed_lights = np.copy(current_lights)
+            for change in buttons[b]:
                 #switch lights
-                current_lights[change] = not current_lights[change]
-            current_combination = light_combination(current_lights)
-            #print(f"Lights changed from {current_data.lights} to {current_lights}")
-            node_data = Node_Structure(next_button, current_lights, current_combination)
-    
-            no_of_nodes += 1
-            new_node = tree.create_node(f"{no_of_nodes}", data = node_data, parent = current_ID)
-            current_node = new_node
-            current_ID = current_node.identifier
-            #Check if this is the first time we reach this combination:
+                changed_lights[change] = not changed_lights[change]
             
-            print(f"Current depth {tree.depth(current_ID)}")
+            connection_value = lights_to_value(changed_lights)
+            graph_nodes[graph_index].connections[b] = connection_value
 
-            if(combinations_reached[current_combination] < 0):
-                combinations_reached[current_combination] = tree.depth(current_ID)
-                combinations_path[current_combination] = current_ID
-            elif(tree.depth(current_ID) < combinations_reached[current_combination]):
-                # Found a more efficient route to combination
-                # Move all of other nodes children to this one
-                
-                for child_node in tree.children(combinations_path[current_combination]):
-                    tree.move_node(child_node.identifier, current_ID)
-                
-                # Update existing combination paths:
-                combinations_reached[current_combination] = tree.depth(current_ID)
-                combinations_path[current_combination] = current_ID
+    # Breitensuche:
+    search_done = False
+    visited = np.full(len(graph_nodes), False)
+
+    queue = []
+    optimal_sequence = None
+    start = 0 # start at 0
+    goal = lights_to_value(machine['lights_goal'])
+    queue.append({'val': start, 'button_sequence': []}) 
+
+    while not search_done:
+        current = queue.pop(0)
+        current_val = current['val']
+        if(not visited[current_val]):
+            if (DEBUG):
+                print(f"Looking at Value {current_val}...")
+                print(f"Got here via {current['button_sequence']}")
+            if current_val == goal:
+                search_done = True
+                if(DEBUG):
+                    print(f"Goal reached")
+                optimal_sequence = current['button_sequence']
             else:
-                #We have already reached this combination before. Go back to previous node
-                #rint(f"current_node: {current_node.identifier}, lights: {current_node.data.lights}")
-                current_node = tree.parent(current_ID)
-                #print(f"current_node after switch: {current_node.identifier}, lights: {current_node.data.lights}")
-        
+                visited[current_val] = True
+                current_node = graph_nodes[current_val]
+                for i in range(len(buttons)):
+                    next_val = current_node.connections[i]
+                    if(DEBUG):
+                        print(f"Button {i} leads from {current_val} to {next_val}. Adding {next_val}")
+                    next_buttons = list(current['button_sequence'])
+                    next_buttons.append(i)
+                    queue.append({'val': next_val, 'button_sequence': next_buttons})
         else:
-            #We have tried every button and didn't arrive at a satisfying conclusion
-            if(current_node.is_root(tree.identifier)):
-               #We checked every possibility
-               finished = True
-            else:
-                current_node = tree.parent(current_ID)
+            if(DEBUG):
+                print(f"Skipping {current_val}, cause already visited")
         
-        if(DEBUG):
-            tree.show(data_property='debug_out')
-            print(combinations_reached)
-            print(combinations_path)
-            
 
-    # Get best path to goal:
-    goal = light_combination(machine['lights_goal'])
-    optimal_path = combinations_path[goal]
-    optimal_buttons = np.zeros(len(buttons), dtype=int)
 
-    for node_id in tree.rsearch(optimal_path):
-        node = tree.get_node(node_id)
-        button = node.data.last_button
-        
-        if button is not None:
-            optimal_buttons[button] += 1
     
     if(DEBUG):
-            tree.show(data_property='debug_out')
-            print(combinations_reached)
-            print(combinations_path)
+        for node in graph_nodes:
+            print(node)
+            print(node.get_connections())
 
-    return optimal_buttons
+    
+
+    return optimal_sequence
 
         
 
@@ -175,7 +158,6 @@ def figure_button_presses(machine):
 def process_input(input):
     out = ''
     machines = []
-    button_presses = []
 
     reg_pattern = r"\[(?P<lights>.+)\]\s*((?P<buttons>\(.+\))\s*)\s*{(?P<joltage>.+)}$"
     for line in input.split('\n'):
@@ -196,23 +178,24 @@ def process_input(input):
         machines.append({'lights_goal': lights_goal, 'lights_current' : lights_current, 'buttons' : buttons, 'joltage' : joltage})
     
     button_presses = np.zeros((len(machines), len(max(machines, key=lambda x: len(x['buttons']))['buttons'])), dtype='int')
-    
-    
 
     #How do we do this....
     for i in range(len(machines)):
         buttons_to_press = figure_button_presses(machines[i])
-        print(buttons_to_press)
-    
-    out += draw_lights(machines, button_presses)
-    
+        for button_press in buttons_to_press:
+            button_presses[i][button_press] += 1
 
-    return out
+        out += f"Press buttons {buttons_to_press} for machine {i}\n"
+  
+    total_presses = sum(sum(button_presses))
+    out += f"A total of {total_presses} Buttons need to be pressed\n"
+
+    return out, total_presses
 
 
 with open(input_path, 'r') as file_in:
     input = file_in.read()
-out = process_input(input)
-
+out, result = process_input(input)
+print(f"A total of {result} Buttons need to be pressed")
 with open(output_path, 'w') as file_out:
     file_out.write(out)
